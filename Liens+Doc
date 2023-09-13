@@ -24,8 +24,8 @@ Documentation :
 Batterie (Mihai, Cédric) : 
 Documentation :
 - Trame :
-  id : 
-  dlc : 
-  data1 :
+  id : 0x180
+  dlc : 1
+  data1 :Valeur de 0 à 100 en hexa(0x00 à 0xFF)
 
 etc ...
