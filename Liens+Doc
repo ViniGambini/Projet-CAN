@@ -10,9 +10,13 @@ Documentation :
 Capteur Temperature () :
 Documentation :
 - Trame :
-  id : 
-  dlc : 
-  data1 : 
+  id : 0x160
+  dlc : 3
+  data0 : 8 premiers bits de la temp (178k à 258k)
+  data1 : 8 derniers bits de la temp (178k à 258k)
+  data2 : etat du chauffage: 0 (neutre)
+                             1 (chauffage)
+                             2 (refroidissement)
 
 Capteur Vent () : 
 Documentation :
