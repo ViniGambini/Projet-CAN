@@ -37,7 +37,7 @@ void main(void) {
 
     tx_protection.frame.id = 0x100;
     tx_protection.frame.dlc = 1;
-    tx_protection.frame.data0 = 0xFF;
+    tx_protection.frame.data0 = 0;
 
 
     while (1) {
@@ -47,12 +47,19 @@ void main(void) {
         txCan.frame.data1 = lecture & 0xFF;
         resultat = (txCan.frame.data0 << 8) + txCan.frame.data1;
 
+        
+        
         if (flag_500ms == 1) {
-            IO_RA5_Toggle();
             CAN_transmit(&txCan);
             flag_500ms = 0;
         }
-        else if (resultat >= 250 && flag_100ms == 1) {
+        if (resultat >= 250 && flag_100ms == 1) {
+            tx_protection.frame.data0 = 0xFF;
+            CAN_transmit(&tx_protection);
+            flag_100ms = 0;
+        }
+        if(resultat < 250 && flag_100ms == 1){
+            tx_protection.frame.data0 = 0x00;
             CAN_transmit(&tx_protection);
             flag_100ms = 0;
         }
