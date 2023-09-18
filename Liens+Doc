@@ -44,4 +44,13 @@ Documentation :
   dlc : 1
   data1 : uint8_t valeur de 0 à 1 en Hexa(0x00 = état "off", 0xFF = État "on")
 
+Panneau Solaire (Les Santiagoss) : 
+Documentation :
+- Trame :
+  id : 0x1C0
+  dlc : 2
+  data0 : 8 bits plus significatifs du wattage
+  data1 : 8 bits moins significatifs du wattage
+  wattaga de 0 à 300
+
 etc ...
