@@ -35,7 +35,7 @@ Documentation :
 - Trame :
   id : 0x180
   dlc : 1
-  data1 :Valeur de 0 à 100 en hexa(0x00 à 0xFF)
+  data1 :Valeur de 0 à 100 en hexa(0x00 à 0x64)
 
 Ondulateur (Étienne, Indi) : https://github.com/Etienne-Vallee-04/CAN_Project_Ondulateur.git 
 Documentation :
