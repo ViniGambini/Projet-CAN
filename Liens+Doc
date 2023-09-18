@@ -44,7 +44,7 @@ Documentation :
   dlc : 1
   data1 : uint8_t valeur de 0 à 1 en Hexa(0x00 = état "off", 0xFF = État "on")
 
-Panneau Solaire (Les Santiagoss) : 
+Panneau Solaire (Les Santiagoss) : https://github.com/SantyMG19/PanneauSolaire_MARS.git
 Documentation :
 - Trame :
   id : 0x1C0
