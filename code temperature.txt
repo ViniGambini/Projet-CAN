@@ -1,0 +1,182 @@
+/**
+  Generated Main Source File
+
+  Company:
+    Microchip Technology Inc.
+
+  File Name:
+    main.c
+
+  Summary:
+    This is the main file generated using PIC10 / PIC12 / PIC16 / PIC18 MCUs
+
+  Description:
+    This header file provides implementations for driver APIs for all modules selected in the GUI.
+    Generation Information:
+        Product Revision: PIC10 / PIC12 / PIC16 / PIC18 MCUs - 1.81.7
+        Device: PIC18F25K80
+        Driver Version: 2.00
+*/
+
+#include "mcc_generated_files/mcc.h"
+
+//  initialisation des variables globales
+
+uint8_t i = 0;              // Compteur pour le timer 1
+int txFlag1 = 0;            // Flag pour envoie du message 1
+int flag_affiche = 0;       // Flag qui controle l'ecriture sur LCD
+
+void timer_50ms(void)       // Fontion appelée toute les 50 ms
+{
+    if (i < 10)             // if statement faux seulement quand fonction appelée 20 fois (20*50ms = 1s)
+    {
+        i++;
+    }
+    else                    
+    {
+        i = 0;
+        flag_affiche = 1;   // Affiche sur l'ecran
+        txFlag1 = 1;        // Active flag pour envoie du msg chaque 500ms
+    }
+
+}
+
+void main(void)
+{
+    // Initialize the device
+    SYSTEM_Initialize();
+
+    // If using interrupts in PIC18 High/Low Priority Mode you need to enable the Global High and Low Interrupts
+    // If using interrupts in PIC Mid-Range Compatibility Mode you need to enable the Global and Peripheral Interrupts
+    // Use the following macros to:
+
+    // Enable the Global Interrupts
+    INTERRUPT_GlobalInterruptEnable();
+    // Disable the Global Interrupts
+    //INTERRUPT_GlobalInterruptDisable();
+
+    // Enable the Peripheral Interrupts
+    INTERRUPT_PeripheralInterruptEnable();
+    // Disable the Peripheral Interrupts
+    //INTERRUPT_PeripheralInterruptDisable();
+
+    TMR1_SetInterruptHandler(timer_50ms);   // fonction timer_50ms appelee a chaque interruption du timer1
+
+    uCAN_MSG txCan;            // Initialise trame msg 
+    txCan.frame.id = 0x160;    // id du msg
+    txCan.frame.dlc = 3;       // Nombre de data bytes
+    txCan.frame.data0 = 0;
+    txCan.frame.data1 = 0;
+    txCan.frame.data2 = 0;
+    
+    uCAN_MSG rxCan;             
+    
+    uint16_t conv0;   // variables pour stocker résultats adc
+    uint16_t temp;
+    
+    uint8_t tp0;
+    uint8_t tp1;
+            
+    uint8_t system = 0;             // Initialisation du systeme a 0
+    uint8_t protection = 0;         
+    
+    uint8_t etat_tp = 0;  
+    
+    while (1)
+    {
+        // sauvegarde des mesures de l'ADC sur les 3 inputs
+//        if(!system && !protection)
+        {
+            conv0 = ADC_GetConversion(0);  
+        }
+        
+               
+        // conversion des mesures en valeur sur 8 bits (0-255)
+        temp = (uint16_t)((float)conv0 / 4095.0f * 80.0f) + 178.0f;
+        
+        // Bit shift pour la sauvegarde de la temperature
+        tp0 = temp>>8;      // 8 bits les + signicatifs
+        tp1 = temp;
+        
+        // Changement de l'etat
+        if(temp-178<= 27)
+        {
+            etat_tp = 1;            // Chauffage
+        }
+        else if(temp-178<= 53)
+        {
+            etat_tp = 0;            // Idle
+        }
+        else if(temp-178<= 80)
+        {
+            etat_tp = 2;            // Refroidissement 
+        }
+        
+        txCan.frame.data0 = tp0;    // Enregistres les resultats obtenus du CAN dans les variables 
+        txCan.frame.data1 = tp1;
+        txCan.frame.data2 = etat_tp;
+        
+        
+        if (txFlag1 && !system && !protection)          // envoie de trame quand flag actif et protections inactifs
+//        if (txFlag1)
+        {
+            txFlag1 = 0;                // Flag reset
+            CAN_transmit(&txCan);       // Transmission du msg 
+            IO_RA5_Toggle();            // Led clignote pour indiquer envoie de msg
+        }
+        
+        if(flag_affiche)                // Pour l'afficheur
+        {
+            flag_affiche = 0;
+//            IO_RA5_Toggle();
+            
+            EUSART1_Write(0xFE);
+            EUSART1_Write(0x51);        // Clear screen
+            EUSART1_Write(0xFE);
+            EUSART1_Write(0x46);        // Set cursor home
+            printf("%04d   %03d", conv0, temp);     // Affiche résultats (Conversion et temperature en Kelvin)
+
+            EUSART1_Write(0xFE);
+            EUSART1_Write(0x45);        
+            EUSART1_Write(0x40);        // Set cursor à la 2ieme ligne
+            printf("Tp0:%x   Tp1:%x", txCan.frame.data0, txCan.frame.data1);        // Affiche les 8 premiers bits de la donnee et les 8 derniers
+
+            EUSART1_Write(0xFE);
+            EUSART1_Write(0x45);        
+            EUSART1_Write(0x14);        // set cursor à la 3ieme ligne
+            printf("System:%01d  Sys_Tp:%01d", system, txCan.frame.data2);          //Affiche l'etat du systeme (l'interface) et l'etat du chauffage)
+            
+            EUSART1_Write(0xFE);
+            EUSART1_Write(0x45);        
+            EUSART1_Write(0x54);        // set cursor à la 4ieme ligne
+            printf("Protection:%01d", protection);          // Pour la protection du vent
+        }
+   
+//        ----------------------------- RECEPTION -------------------------//
+        
+        if(CAN_receive(&rxCan))     // True if msg CAN reçu (donc si elle recoit 1 ou 0)
+        {
+//            IO_RA5_Toggle();                // Test pour voir si on recoit
+            if (rxCan.frame.id == 0x120)    // check l'id de la trame (L'interface)
+            {
+//                IO_RA5_Toggle();
+                if(rxCan.frame.data0 == 0xFF)   // Indique que le systeme est inactif
+                {
+                    system = 1;
+                }
+                else {system = 0;}
+            }
+
+            if (rxCan.frame.id == 0x100)    // check l'id de la trame (Capteur du vent)
+            {
+                if(rxCan.frame.data0 == 0xFF)
+                {
+                    protection = 1;
+                }
+                else {protection = 0;}
+            }
+        }
+        
+    }
+}
+/* ENLEVER LA RÉSISTANCE, ON A BESOIN D'UNE RESISTANCE SEULEMENT A LA FIN ET AU DEBUT D'UN NOEUD */
