@@ -7,7 +7,7 @@ Documentation :
     0xFF = État On
     0x00 = État Off
 
-Capteur Temperature () :
+Capteur Temperature (Valérie, Rolly) :
 Documentation :
 - Trame :
   id : 0x160
