@@ -1,19 +1,36 @@
+/*    .       .
+                             / `.   .' "
+                     .---.  <    > <    >  .---.
+                     |    \  \ - ~ ~ - /  /    |
+         _____          ..-~             ~-..-~
+        |     |   \~~~\.'   Capteur vent     `./~~~/
+       ---------   \__/    Kevin & Jonathan    \__/
+      .'  O    \     /               /       \  "
+     (_____,    `._.'               |         }  \/~~~/
+      `----.          /       }     |        /    \__/
+            `-.      |       /      |       /      `. ,~~|
+                ~-.__|      /_ - ~ ^|      /- _      `..-'   
+                     |     /        |     /     ~-.     `-. _  _  _
+                     |_____|        |_____|         ~ - . _ _ _ _ _>
 
+
+ */
 #include "mcc_generated_files/mcc.h"
 
 
 uint8_t flag_500ms = 0;
-uint8_t flag_100ms = 0;
+uint8_t flag_protection = 0;
 uint16_t lecture;
 uint8_t vitesse_vent;
 uint16_t resultat = 0;
+uint8_t etat;
 
 void interrupt_500ms(void) {
     flag_500ms = 1;
 }
 
-void interrupt_100ms(void) {
-    flag_100ms = 1;
+void interrupt_protection(void) {
+    flag_protection = 1;
 }
 
 void main(void) {
@@ -25,7 +42,13 @@ void main(void) {
     // Enable the Peripheral Interrupts
     INTERRUPT_PeripheralInterruptEnable();
     TMR0_SetInterruptHandler(interrupt_500ms);
-    TMR1_SetInterruptHandler(interrupt_100ms);
+    TMR1_SetInterruptHandler(interrupt_protection);
+
+    uCAN_MSG rxCan;
+    rxCan.frame.id = 0;
+    rxCan.frame.dlc = 0;
+    rxCan.frame.data0 = 0;
+
     uCAN_MSG txCan;
 
     txCan.frame.id = 0x140;
@@ -41,27 +64,47 @@ void main(void) {
 
 
     while (1) {
-        lecture = ADC_GetConversion(channel_AN0);
-        lecture = ((float) lecture * 401) / 4095;
-        txCan.frame.data0 = (lecture >> 8) & 0xFF;
-        txCan.frame.data1 = lecture & 0xFF;
-        resultat = (txCan.frame.data0 << 8) + txCan.frame.data1;
+        // Pour shutdown le capteur vent lorsque l'interface envoie 0xFF
+        if (CAN_receive(&rxCan) >= 1) { // Si le CAN reçoit supérieur ou egal a 1 de rxCan
+            if (rxCan.frame.id == 0x120) { // Si le ID de rxCan est 0x120
+                if (rxCan.frame.data0 != 0x00) { // Si data0 de rxCan est different de 0x00
+                    etat = 1;
+                } else {
+                    etat = 0;
+                }
+            }
+        }
+        // Transmission du vent
+        if (etat == 0) {
+            lecture = ADC_GetConversion(channel_AN0);
+            lecture = ((float) lecture * 401) / 4095;
+            if (lecture > 400) {
+                lecture = 0;
+            }
+            txCan.frame.data0 = (lecture >> 8) & 0xFF;
+            txCan.frame.data1 = lecture & 0xFF;
+            resultat = (txCan.frame.data0 << 8) + txCan.frame.data1;
 
-        
-        
-        if (flag_500ms == 1) {
-            CAN_transmit(&txCan);
-            flag_500ms = 0;
-        }
-        if (resultat >= 250 && flag_100ms == 1) {
-            tx_protection.frame.data0 = 0xFF;
-            CAN_transmit(&tx_protection);
-            flag_100ms = 0;
-        }
-        if(resultat < 250 && flag_100ms == 1){
-            tx_protection.frame.data0 = 0x00;
-            CAN_transmit(&tx_protection);
-            flag_100ms = 0;
+
+            printf("%d\r\n", resultat);
+
+            // Chaque 500 ms, on transmet
+            if (flag_500ms == 1) {
+                CAN_transmit(&txCan);
+                flag_500ms = 0;
+            }
+            // Mode protection lorsque vent est superieur ou egal a 250 km/h, on envoie chaque 500 ms
+            if (resultat >= 250 && flag_protection == 1) {
+                tx_protection.frame.data0 = 0xFF;
+                CAN_transmit(&tx_protection);
+                flag_protection = 0;
+            }
+            // Si le vent est inferieur a 250 km/h, on envoie a chaque 500 ms
+            if (resultat < 250 && flag_protection == 1) {
+                tx_protection.frame.data0 = 0x00;
+                CAN_transmit(&tx_protection);
+                flag_protection = 0;
+            }
         }
     }
 }
