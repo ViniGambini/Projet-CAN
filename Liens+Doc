@@ -37,6 +37,6 @@ Documentation :
 - Trame :
   id : 0x1A0
   dlc : 1
-  data1 :Valeur de 0 à 1 en Hexa(0x00 = état "off", 0xFF = État "on")
+  data1 : uint8_t valeur de 0 à 1 en Hexa(0x00 = état "off", 0xFF = État "on")
 
 etc ...
