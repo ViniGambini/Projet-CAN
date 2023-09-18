@@ -18,12 +18,16 @@ Documentation :
                              1 (chauffage)
                              2 (refroidissement)
 
-Capteur Vent () : 
+Capteur Vent (Kevin,Jonathan) : 
 Documentation :
 - Trame :
-  id : 
-  dlc : 
-  data1 : 
+  id : 0x100 pour protection 
+  dlc : 1
+  data0 : 0xFF pour protection ON, 0x00 pour protection OFF
+  id : 0x140 pour capteur vent
+  dlc : 2
+  data0 : 8 dernier bits valeur vent 
+  data1 : 8 premier bits valeur vent 
 
 Batterie (Mihai, Cédric) : 
 Documentation :
