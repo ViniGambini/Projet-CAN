@@ -1,4 +1,4 @@
-Interface (John, Vincent, Thomas) : https://github.com/ViniGambini/Project_CAN_Interface
+mInterface (John, Vincent, Thomas) : https://github.com/ViniGambini/Project_CAN_Interface
 Documentation :
 - Trame :
   id : 0x120
@@ -18,7 +18,7 @@ Documentation :
                              1 (chauffage)
                              2 (refroidissement)
 
-Capteur Vent (Kevin,Jonathan) : 
+Capteur Vent (Kevin,Jonathan) : emetteur_vent.txt
 Documentation :
 - Trame :
   id : 0x100 pour protection 
