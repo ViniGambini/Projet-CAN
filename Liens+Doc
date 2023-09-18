@@ -4,8 +4,8 @@ Documentation :
   id : 0x120
   dlc : 1
   data1 : uint8_t 
-    0xFF = État On
-    0x00 = État Off
+    0xFF = État Off
+    0x00 = État On
 
 Capteur Temperature (Valérie, Rolly) :
 Documentation :
