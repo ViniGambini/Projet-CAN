@@ -1,4 +1,4 @@
-mInterface (John, Vincent, Thomas) : https://github.com/ViniGambini/Project_CAN_Interface
+Interface (John, Vincent, Thomas) : https://github.com/ViniGambini/Project_CAN_Interface
 Documentation :
 - Trame :
   id : 0x120
@@ -24,6 +24,8 @@ Documentation :
   id : 0x100 pour protection 
   dlc : 1
   data0 : 0xFF pour protection ON, 0x00 pour protection OFF
+  Les valeurs différents de 0x00 font en sorte que la protection est ON.
+  Exemple: 0x08 = ON
 
   id : 0x140 pour capteur vent
   dlc : 2
