@@ -1,0 +1,146 @@
+/**
+  Generated Main Source File
+
+  Company:
+    Microchip Technology Inc.
+
+  File Name:
+    main.c
+
+  Summary:
+    This is the main file generated using PIC10 / PIC12 / PIC16 / PIC18 MCUs
+
+  Description:
+    This header file provides implementations for driver APIs for all modules selected in the GUI.
+    Generation Information :
+        Product Revision  :  PIC10 / PIC12 / PIC16 / PIC18 MCUs - 1.81.7
+        Device            :  PIC18F25K80
+        Driver Version    :  2.00
+ */
+
+/*
+    (c) 2018 Microchip Technology Inc. and its subsidiaries. 
+    
+    Subject to your compliance with these terms, you may use Microchip software and any 
+    derivatives exclusively with Microchip products. It is your responsibility to comply with third party 
+    license terms applicable to your use of third party software (including open source software) that 
+    may accompany Microchip software.
+    
+    THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES, WHETHER 
+    EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE, INCLUDING ANY 
+    IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY, AND FITNESS 
+    FOR A PARTICULAR PURPOSE.
+    
+    IN NO EVENT WILL MICROCHIP BE LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE, 
+    INCIDENTAL OR CONSEQUENTIAL LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND 
+    WHATSOEVER RELATED TO THE SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP 
+    HAS BEEN ADVISED OF THE POSSIBILITY OR THE DAMAGES ARE FORESEEABLE. TO 
+    THE FULLEST EXTENT ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL 
+    CLAIMS IN ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT 
+    OF FEES, IF ANY, THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS 
+    SOFTWARE.
+ */
+
+#include "mcc_generated_files/mcc.h"
+
+uint8_t flag_1s; //Flag pour compter 1 sec
+uint8_t etat_systeme;
+uint8_t protection;
+
+//fonction qui active les flag Ã  chaque interruption du timer
+
+void compteur_transmission(void) {
+    flag_1s = 1;
+}
+
+
+//nom des Ã©tat pour la machine Ã  Ã©tat
+int etat;
+
+enum {
+    lecture_CAN, transmission_batterie, idle
+};
+
+void main(void) {
+    // Initialize the device
+    SYSTEM_Initialize();
+
+    //instantiation de l'interruption sur le timer 0
+    TMR0_SetInterruptHandler(compteur_transmission);
+    //ECAN_SetRXB0InterruptHandler(lecture_trame);
+    INTERRUPT_GlobalInterruptEnable();
+    INTERRUPT_PeripheralInterruptEnable();
+
+
+    RXB0CON = 0x60;
+
+    uCAN_MSG txCan;
+
+    uCAN_MSG rxCan;
+    //Initialized for display purpose before receiving first message
+    rxCan.frame.id = 0;
+    rxCan.frame.dlc = 0;
+    rxCan.frame.data0 = 0;
+
+    etat = idle; //initialisation de l'etat de depart
+
+    //Remise a 0 du timer et des flags
+    TMR0_Reload();
+
+    while (1) {
+
+        switch (etat) {
+
+            case idle:
+
+                //si une seconde est ecoule
+                if (flag_1s == 1) {
+                    flag_1s = 0; //remettre le compte a 0
+                    etat = transmission_batterie; //aller a l'etat pour transmettre la temperature
+                }
+                break;
+
+            case transmission_batterie:
+                IO_RA5_SetHigh();
+                txCan.frame.id = 0x180; //mettre l'ID de la trame a 0x180
+                txCan.frame.dlc = 1; //Indique que 1 octets de donnÃ©es sont transmis
+
+                //Condition qui permet d'enlever toute valeur qui sont en bas de 0 avec le potentiometre
+                if (ADC_GetConversion(channel_AN0) == 0xffff) { //si la valeur est negative, aors transmettre 0
+                    txCan.frame.data0 = 0;
+                } else { //si la valeur n'est pas negative, transmettre une valeur de 0 a 255 proportionnelle
+                    txCan.frame.data0 = ADC_GetConversion(channel_AN0)*0.0245099; //temperature 1er capteur
+                }
+
+                CAN_transmit(&txCan); //transmettre la trame
+
+                etat = lecture_CAN;
+
+                break;
+
+            case lecture_CAN:
+                
+                if (CAN_receive(&rxCan) >= 1) {
+                    if (rxCan.frame.id == 0x100 || rxCan.frame.id == 0x120) {
+                        if(rxCan.frame.id == 0x100){
+                            protection = rxCan.frame.data0;
+                        }
+                        else if (rxCan.frame.id == 0x120){
+                            etat_systeme = rxCan.frame.data0;
+                        }
+                        if (protection == 0x00 && etat_systeme == 0x00) {
+                            etat = idle;
+                        }
+                        else{
+                            IO_RA5_SetLow();
+                        }
+                    }
+                   
+                }
+                break;
+        }
+    }
+}
+/**
+ End of File
+ */
