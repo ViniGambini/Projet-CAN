@@ -1,10 +1,10 @@
 Interface (John, Vincent, Thomas) : https://github.com/ViniGambini/Project_CAN_Interface
 Documentation :
-- Trame :
+- Trame : envoie trame à 1000ms d'intervale
   id : 0x120
   dlc : 1
   data1 : uint8_t 
-    0xFF = État Off
+    0xFF = État Off (doit être par défaut, tout ce qui n'est pas 0x00 est considéré comme off)
     0x00 = État On
 
 Capteur Temperature (Valérie, Rolly) :
