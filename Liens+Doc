@@ -22,7 +22,7 @@ Capteur Vent (Kevin,Jonathan) : emetteur_vent.txt
 Documentation :
 - Trame :
   id : 0x100 pour protection 
-  dlc : 3
+  dlc : 2
   data0 : 0xFF pour protection ON, 0x00 pour protection OFF
   Les valeurs différents de 0x00 font en sorte que la protection est ON.
   Exemple: 0x08 = ON
@@ -43,7 +43,7 @@ Ondulateur (Étienne, Indi) : https://github.com/Etienne-Vallee-04/CAN_Project_O
 Documentation :
 - Trame :
   id : 0x1A0
-  dlc : 1
+  dlc : 3
   data0 : uint8_t valeur de 0 à 1 en Hexa(0x00 = état "off", 0xFF = État "on")
   data1 : 8 bits plus significatifs du wattage (0x00 à 0x01) 
   data3 : 8 bits moins significatifs du wattage (0x00 à 0xFF)
