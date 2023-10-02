@@ -1,4 +1,4 @@
-/*    .       .
+/*           
                              / `.   .' "
                      .---.  <    > <    >  .---.
                      |    \  \ - ~ ~ - /  /    |
@@ -17,20 +17,40 @@
  */
 #include "mcc_generated_files/mcc.h"
 
-
 uint8_t flag_500ms = 0;
 uint8_t flag_protection = 0;
 uint16_t lecture;
 uint8_t vitesse_vent;
 uint16_t resultat = 0;
 uint8_t etat;
-
+uint8_t timeout = 0;
+uint8_t flag_block;
+uint8_t shutdown = 0;
+        
 void interrupt_500ms(void) {
     flag_500ms = 1;
 }
 
 void interrupt_protection(void) {
     flag_protection = 1;
+}
+
+void timer_5sec(void) {
+
+    if (TMR3_HasOverflowOccured()) {
+        TMR3IF = 0;
+        TMR3_Reload();
+        timeout++;
+        if (timeout >= 20) {
+            etat = 1;
+            IO_RC1_SetHigh();
+            IO_RC0_SetLow();
+            IO_RC2_SetLow();
+            shutdown = 1;
+        }
+
+    }
+
 }
 
 void main(void) {
@@ -43,6 +63,20 @@ void main(void) {
     INTERRUPT_PeripheralInterruptEnable();
     TMR0_SetInterruptHandler(interrupt_500ms);
     TMR1_SetInterruptHandler(interrupt_protection);
+    
+    RXM0SIDH = 0xFF; //masque 
+    RXM0SIDL = 0xF0;
+
+    RXF0SIDH = 0x00; //filtre accepte juste 0x120 et 0x121
+    RXF0SIDL = 0x00;
+    
+
+
+    RXM1SIDH = 0xFF; //masque 
+    RXM1SIDL = 0xC0;
+
+    RXF1SIDH = 0x24; //filtre accepte juste 0x120 et 0x121
+    RXF1SIDL = 0x00;
 
     uCAN_MSG rxCan;
     rxCan.frame.id = 0;
@@ -62,31 +96,59 @@ void main(void) {
     tx_protection.frame.dlc = 1;
     tx_protection.frame.data0 = 0;
 
+    IO_RA5_SetLow();
 
     while (1) {
         // Pour shutdown le capteur vent lorsque l'interface envoie 0xFF
         if (CAN_receive(&rxCan) >= 1) { // Si le CAN reçoit supérieur ou egal a 1 de rxCan
+            timeout = 0;
+            shutdown = 0;
+//            if(rxCan.frame.id == 0x121){
+//                IO_RA5_SetHigh();
+//            }
             if (rxCan.frame.id == 0x120) { // Si le ID de rxCan est 0x120
+                //                timeout = 0;
                 if (rxCan.frame.data0 != 0x00) { // Si data0 de rxCan est different de 0x00
-                    etat = 1;
+                    etat = 1; //Etat Shutdown
+                    IO_RC1_SetHigh();
+                    IO_RC0_SetLow();
+                    IO_RC2_SetLow();
                 } else {
-                    etat = 0;
+                    etat = 0; //Etat ouvert
+                    IO_RC0_SetHigh();
+                    IO_RC1_SetLow();
+
                 }
             }
+        } 
+        else {   //perte transmission
+            if (flag_block == 0) {
+                TMR3_StartTimer();
+                timer_5sec();
+            }
         }
+
+
+        if(shutdown == 1){  //si perte de transmission envois desactive la protection
+           
+           tx_protection.frame.data0 = 0x00;
+           CAN_transmit(&tx_protection);
+           __delay_ms(1000);
+        }
+
         // Transmission du vent
         if (etat == 0) {
             lecture = ADC_GetConversion(channel_AN0);
-            lecture = ((float) lecture * 401) / 4095;
+            lecture = ((float) lecture * 400) / 4095;
             if (lecture > 400) {
                 lecture = 0;
             }
-            txCan.frame.data0 = (lecture >> 8) & 0xFF;
+            txCan.frame.data0 = (lecture >> 8) & 0xFF;   //divise la data en 2 
             txCan.frame.data1 = lecture & 0xFF;
             resultat = (txCan.frame.data0 << 8) + txCan.frame.data1;
 
 
-            printf("%d\r\n", resultat);
+
 
             // Chaque 500 ms, on transmet
             if (flag_500ms == 1) {
@@ -98,12 +160,16 @@ void main(void) {
                 tx_protection.frame.data0 = 0xFF;
                 CAN_transmit(&tx_protection);
                 flag_protection = 0;
+                flag_block = 1;
+                IO_RC2_SetHigh();
             }
             // Si le vent est inferieur a 250 km/h, on envoie a chaque 500 ms
             if (resultat < 250 && flag_protection == 1) {
                 tx_protection.frame.data0 = 0x00;
                 CAN_transmit(&tx_protection);
                 flag_protection = 0;
+                flag_block = 0;
+                IO_RC2_SetLow();
             }
         }
     }
