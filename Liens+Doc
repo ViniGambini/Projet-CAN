@@ -47,7 +47,7 @@ Documentation :
   data0 : uint8_t valeur de 0 à 1 en Hexa(0x00 = état "off", 0xFF = État "on")
   data1 : 8 bits plus significatifs du wattage (0x00 à 0x01) 
   data3 : 8 bits moins significatifs du wattage (0x00 à 0xFF)
-  wattaga de 0 à 300 transmis en hexa ( 0x00 à 0x12C)
+  Le wattage de 0 à 300 transmis en hexa ( 0x00 à 0x12C)
 
 Panneau Solaire (Les Santiagoss) : https://github.com/SantyMG19/PanneauSolaire_MARS.git
 Documentation :
