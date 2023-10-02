@@ -19,7 +19,8 @@ Documentation :
                              2 (refroidissement)
 
 Capteur Vent (Kevin,Jonathan) : emetteur_vent.txt
-Documentation :
+Documentation : Pour le capteur vent, on simule une vitesse de vent de 0 à 400 km/h à l'aide d'un potentiomètre. On a aussi intégré 3 LEDS, une verte pour l'état transmission, une rouge pour l'état arrêt de transmission et une jaune pour l'état protection. 
+De plus, on a ajouté un mode timeout pour se protéger si l'interface nous envoie plus rien, exemple quand le bus CAN est endommagé. 
 - Trame :
   id : 0x100 pour protection 
   dlc : 1
