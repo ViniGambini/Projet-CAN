@@ -22,7 +22,7 @@ Capteur Vent (Kevin,Jonathan) : emetteur_vent.txt
 Documentation :
 - Trame :
   id : 0x100 pour protection 
-  dlc : 2
+  dlc : 
   data0 : 0xFF pour protection ON, 0x00 pour protection OFF
   Les valeurs différents de 0x00 font en sorte que la protection est ON.
   Exemple: 0x08 = ON
