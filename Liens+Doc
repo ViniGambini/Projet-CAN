@@ -51,6 +51,10 @@ Documentation :
   data1 : 8 bits plus significatifs du wattage (0x00 à 0x01) 
   data3 : 8 bits moins significatifs du wattage (0x00 à 0xFF)
   Le wattage de 0 à 300 transmis en hexa ( 0x00 à 0x12C)
+  documentation: le noeud de l'ondulateur simule une charge qui peut varier de 0W à 300W avec un potentiomètre. 
+  Ensuite, il y a deux leds intégrés au noeud, une LED Verte pour signifier l'État "ON" et une LED Rouge pour signifier l'ÉTAT "OFF". 
+  Aussi, il y a un intérrupteur afin de contrôler l'état du noeud uniquement si le système et à "ON".
+  Dans le code, il y a 3 État: ON, OFF et OFF_Passive. On peut toujours recevoir les messages.
 
 Panneau Solaire (Les Santiagoss) : https://github.com/SantyMG19/PanneauSolaire_MARS.git
 Documentation :
