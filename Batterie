@@ -1,21 +1,9 @@
 /**
-  Generated Main Source File
-
-  Company:
-    Microchip Technology Inc.
-
-  File Name:
-    main.c
-
-  Summary:
-    This is the main file generated using PIC10 / PIC12 / PIC16 / PIC18 MCUs
-
-  Description:
-    This header file provides implementations for driver APIs for all modules selected in the GUI.
-    Generation Information :
-        Product Revision  :  PIC10 / PIC12 / PIC16 / PIC18 MCUs - 1.81.7
-        Device            :  PIC18F25K80
-        Driver Version    :  2.00
+ * Auteurs: Cédric Frenette et Mihai Stinga
+ * Établissement: Collège de Maisonneuve
+ * Description: Ce programme envoie l'etat d'une batterie simulee par un potentiometre 
+ * et vient lire certaines trames qui nous sont nécessaires a la protection de notre robot 
+ * qui va sur Mars
  */
 
 /*
@@ -44,13 +32,19 @@
 #include "mcc_generated_files/mcc.h"
 
 uint8_t flag_1s; //Flag pour compter 1 sec
+uint8_t flag_5s_100;
 uint8_t etat_systeme;
 uint8_t protection;
+uint16_t energie_panneau;
+uint16_t energie_ondulateur;
+int16_t variation_batterie;
+uint8_t controle = 1;
 
 //fonction qui active les flag Ã  chaque interruption du timer
 
 void compteur_transmission(void) {
     flag_1s = 1;
+    flag_5s_100++;
 }
 
 
@@ -58,7 +52,7 @@ void compteur_transmission(void) {
 int etat;
 
 enum {
-    lecture_CAN, transmission_batterie, idle
+    lecture_CAN, transmission_batterie, idle, non_transmission
 };
 
 void main(void) {
@@ -71,8 +65,18 @@ void main(void) {
     INTERRUPT_GlobalInterruptEnable();
     INTERRUPT_PeripheralInterruptEnable();
 
+    RXF1SIDH = 0x32; //definition de nos filtres
+    RXF1SIDL = 0x00;
 
-    RXB0CON = 0x60;
+    RXM1SIDH = 0xE7; //definition de nos masques
+    RXM1SIDL = 0xE0;
+
+    RXF0SIDH = 0x24; //definition de nos filtres
+    RXF0SIDL = 0x00;
+
+    RXM0SIDH = 0xFF; //definition de nos masques
+    RXM0SIDL = 0xE0;
+
 
     uCAN_MSG txCan;
 
@@ -92,14 +96,12 @@ void main(void) {
         switch (etat) {
 
             case idle:
-
                 //si une seconde est ecoule
                 if (flag_1s == 1) {
                     flag_1s = 0; //remettre le compte a 0
                     etat = transmission_batterie; //aller a l'etat pour transmettre la temperature
-                }
+                } 
                 break;
-
             case transmission_batterie:
                 IO_RA5_SetHigh();
                 txCan.frame.id = 0x180; //mettre l'ID de la trame a 0x180
@@ -114,29 +116,38 @@ void main(void) {
 
                 CAN_transmit(&txCan); //transmettre la trame
 
-                etat = lecture_CAN;
+                etat = lecture_CAN;     //changer d'etat 
 
                 break;
 
             case lecture_CAN:
-                
-                if (CAN_receive(&rxCan) >= 1) {
-                    if (rxCan.frame.id == 0x100 || rxCan.frame.id == 0x120) {
-                        if(rxCan.frame.id == 0x100){
-                            protection = rxCan.frame.data0;
+                if (CAN_receive(&rxCan) >= 1) { //si on reçoit un message
+                    if (rxCan.frame.id == 0x100 || rxCan.frame.id == 0x120) { // si on reçoit une trame ayant soit le id 100 ou 120
+                        if (rxCan.frame.id == 0x100) { //si on reçoit une trame 100 on rentre dans le if 
+                            protection = rxCan.frame.data0;         //associer le data dans protection
+                        } else if (rxCan.frame.id == 0x120) {                   //si on recoit une trame 120 rentre dans le if 
+                            etat_systeme = rxCan.frame.data0;       //associer le data 0 a la variable etat systeme
                         }
-                        else if (rxCan.frame.id == 0x120){
-                            etat_systeme = rxCan.frame.data0;
-                        }
-                        if (protection == 0x00 && etat_systeme == 0x00) {
-                            etat = idle;
-                        }
-                        else{
-                            IO_RA5_SetLow();
+                        if (protection == 0x00 && etat_systeme == 0x00) {       //si protection et etat_systeme sont tous les deux egaux a 00 donc je peux continuer a transmettre
+                            etat = idle;        
+                        } else {
+                            IO_RA5_SetLow();                    //sinon on eteint la led
                         }
                     }
-                   
                 }
+                /*****Début de code pour la modification de la batterie*****/
+                /*  #if (rxCan.frame.id == 0x1A0 || rxCan.frame.id == 0x1C0){
+                    if (rxCan.frame.id == 0x1C0) {
+                        energie_panneau = (rxCan.frame.data0 << 8) + rxCan.frame.data1 ;
+                    } else if (rxCan.frame.id == 0x1C0) {
+                        energie_ondulateur = (rxCan.frame.data1 << 8) + rxCan.frame.data2 ;;
+                    }
+                            
+                    variation_batterie = energie_panneau - energie_ondulateur;
+                            
+                    etat = idle;
+                            
+                }*/
                 break;
         }
     }
