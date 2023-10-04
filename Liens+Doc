@@ -57,7 +57,10 @@ Documentation :
   Dans le code, il y a 3 État: ON, OFF et OFF_Passive. On peut toujours recevoir les messages.
 
 Panneau Solaire (Les Santiagoss) : https://github.com/SantyMG19/PanneauSolaire_MARS.git
-Documentation :
+Documentation : Pour le panneau solaire, on a intégré une photorésistance dont on lit la valeur sur la carte PIC, pour simuler le panneau solaire qui prend la lumière du Soleil sur Mars. 
+Grâce à un ADC on peut convertir la tension acquise par la photorésistance et l'afficher sur une marge de 0 à 300 qui simule le Wattage. On a également ajouté deux Dels, une verte pour
+indiquer que le bus CAN est actif et une rouge pour indiquer que le bus CAN est bloqué, soit par un fil deconnecté, soit que le capteur de vent qui indique un vent trop elevé ou l'interface centrale qui
+bloque le bus CAN. Ce code accepte juste les messages provenant de 0x120 (interface) et de 0x100 (capteur de vent).
 - Trame :
   id : 0x1C0
   dlc : 2
